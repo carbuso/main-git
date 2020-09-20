@@ -2,6 +2,7 @@ from subprocess import Popen, PIPE, check_output, TimeoutExpired
 from time import sleep
 from os import read
 import re
+from logging import Logger
 
 
 class CyberghostvpnException(Exception):
@@ -10,7 +11,8 @@ class CyberghostvpnException(Exception):
 
 
 class Cyberghostvpn(object):
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
         pass
 
     def get_cities(self, country):
@@ -27,6 +29,8 @@ class Cyberghostvpn(object):
         out, err = proc.communicate()
         if out == b'':
             msg = ('Error on command: %s' % cmd)
+            self.logger.info(msg)
+            print(msg)
             raise CyberghostvpnException(msg)
         blines = out.split(b'\n')
         slines = []
@@ -65,6 +69,8 @@ class Cyberghostvpn(object):
         out, err = proc.communicate()
         if out == b'':
             msg = ('Error on command: %s' % cmd)
+            self.logger.info(msg)
+            print(msg)
             raise CyberghostvpnException(msg)
         blines = out.split(b'\n')
         slines = []
@@ -102,6 +108,8 @@ class Cyberghostvpn(object):
         out, err = proc.communicate()
         if out == b'':
             msg = ('Error on command: %s' % cmd)
+            self.logger.info(msg)
+            print(msg)
             raise CyberghostvpnException(msg)
         msg = "VPN connection established"
         if msg in str(out):
@@ -116,6 +124,8 @@ class Cyberghostvpn(object):
         out, err = proc.communicate()
         if out == b'':
             msg = ('Error on command: %s' % cmd)
+            self.logger.info(msg)
+            print(msg)
             raise CyberghostvpnException(msg)
         return 0
 
@@ -125,6 +135,8 @@ class Cyberghostvpn(object):
         out, err = proc.communicate()
         if out == b'':
             msg = ('Error on command: %s' % cmd)
+            self.logger.info(msg)
+            print(msg)
             raise CyberghostvpnException(msg)
         # "No VPN connections found."
         # "VPN connection found."
@@ -136,12 +148,13 @@ class Cyberghostvpn(object):
 
 
 class CyberghostvpnManager(object):
-    def __init__(self, country, start_ip):
+    def __init__(self, country, start_ip, logger):
         # initialize
         self.country = country
         self.start_ip = start_ip - 1
         self.repeated = False
-        self.cyberghost = Cyberghostvpn()
+        self.logger = logger
+        self.cyberghost = Cyberghostvpn(logger)
         self.addresses = []
         self.current_server = self.start_ip
         # get the servers
@@ -155,7 +168,10 @@ class CyberghostvpnManager(object):
         """Changes VPN ip"""
         # safety check
         if len(self.addresses) == 0:
-            raise CyberghostvpnException("cyberghost cannot switch vpn: address list is empty!")
+            msg = "cyberghost cannot switch vpn: address list is empty!"
+            self.logger.info(msg)
+            print(msg)
+            raise CyberghostvpnException(msg)
         self.current_server += 1
         # rewind and start with first server again
         if self.current_server >= len(self.addresses):
@@ -171,6 +187,8 @@ class CyberghostvpnManager(object):
         address = self.addresses[self.current_server]
         if self.cyberghost.connect(address[0], address[1], address[2]) != 0:
             msg = ("CyberGhost connection failed for: %s, %s, %s" % (address[0], address[1], address[2]))
+            self.logger.info(msg)
+            print(msg)
             raise CyberghostvpnException(msg)
         return 0
 
