@@ -270,7 +270,7 @@ def main():
     init_parser()
     try:
         parse_config()
-    except ConfigParseException as e:
+    except ConfigParseException as exc:
         print("Error while parsing config file. %s" % CONFIG_PATH)
         return 1
 
@@ -280,7 +280,7 @@ def main():
 
     # Init cyberghostmanager
     if USE_CYBERGHOSTVPN and CYBERGHOSTVPN_COUNTRY:
-        cyberghostmanager = CyberghostvpnManager(CYBERGHOSTVPN_COUNTRY, CYBERGHOSTVPN_START_IP)
+        cyberghostmanager = CyberghostvpnManager(CYBERGHOSTVPN_COUNTRY, CYBERGHOSTVPN_START_IP, logger)
 
     # Connect to VPN
     vpn_start_time = vpn_connect()
@@ -343,9 +343,13 @@ def main():
             slave = get_slave(slave_context)
             executor.submit(slave.start, slave_context, slave_return_queue)
             logger.info("Started slave with context %s", str(slave_context))
-        except queue.Empty as e:
-            msg = ("Slave timeout exception: %s" % str(e))
+        except queue.Empty as exc:
+            msg = ("Slave timeout exception: %s" % str(exc))
             logger.exception(msg)
+        except Exception as exc:
+            msg = ("Unknown exception: %s" % str(exc))
+            logger.exception(msg)
+        finally:
             time_diff = time() - vpn_start_time
             if time_diff > critical_timeout:
                 msg = ("Slave timeout %d sec reached critical timeout %d sec" % (time_diff, critical_timeout))
@@ -360,6 +364,7 @@ def main():
         cyberghostmanager.disconnect()
 
     # Make an exception and keep this log file
+    logger.info("bot terminated!")
     bot_logger.close_logger(logger, disable_logging=False)
     return 1
 
