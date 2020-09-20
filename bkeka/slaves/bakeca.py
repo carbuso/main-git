@@ -37,10 +37,6 @@ class BakecaException(Exception):
 	"""Raised for different internal errors"""
 	pass
 
-class CaptchaSolverException(Exception):
-	"""Raised for different internal errors"""
-	pass
-
 class TelegramAuthException(Exception):
 	"""Raised for different internal errors"""
 	pass
@@ -115,7 +111,7 @@ class BakecaSlave(object):
 		# Solve captcha
 		resp = util.solve_captcha(driver)
 		if resp == "error":
-			raise CaptchaSolverException("Failed to resolve captcha")
+			raise util.CaptchaSolverException("Failed to resolve captcha")
 		# Close captcha response
 		recaptcha_response = driver.find_element_by_id("g-recaptcha-response")
 		driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
@@ -216,7 +212,7 @@ class BakecaSlave(object):
 		# Solve captcha
 		resp = util.solve_captcha_iframe(driver, '//*[@id="captcha_post_insert"]/div/div/iframe')
 		if resp == "error":
-			raise CaptchaSolverException("Failed to resolve captcha")
+			raise util.CaptchaSolverException("Failed to resolve captcha")
 		# Close captcha response
 		recaptcha_response = driver.find_element_by_id("g-recaptcha-response")
 		driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
@@ -417,34 +413,35 @@ class BakecaSlave(object):
 		except TimeoutException as e:
 			exception_type = "Timeout on page wait."
 			logger.exception("Timeout on page wait.")
-			raise BAKECAException("Timeout on page wait.")
+			raise BakecaException("Timeout on page wait.")
 		except NoSuchElementException as e:
 			exception_type = "Element not found."
 			logger.exception("Element not found.")
-			raise BAKECAException("Element not found.")
+			raise BakecaException("Element not found.")
 		except ElementNotInteractableException as e:
 			exception_type = "Element not interactable."
 			logger.exception("Element not interactable.")
-			raise BAKECAException("Element not interactable.")
+			raise BakecaException("Element not interactable.")
 		except util.UtilParseError as e:
 			exception_type = "Parse error."
 			logger.exception("Parse error.")
-			raise BAKECAException("Parse error.")
-		except CaptchaSolverException as e:
+			raise BakecaException("Parse error.")
+		except util.CaptchaSolverException as e:
 			exception_type = "Failed to solve captcha in time."
 			logger.exception("Failed to solve captcha in time.")
-			raise BAKECAException("Failed to solve captcha in time.")
+			raise BakecaException("Failed to solve captcha in time.")
 		except TelegramAuthException as e:
 			exception_type = "TelegramAuth was required."
 			logger.exception("TelegramAuth was required.")
-			raise BAKECAException("TelegramAuth was required.")
+			raise BakecaException("TelegramAuth was required.")
 		except BakecaException as e:
 			exception_type = "Bakeca exception occurred"
 			logger.exception("Bakeca exception occurred")
+			raise e
 		except Exception as e:
 			exception_type = "Unknown error."
 			logger.exception("Unknown error.")
-			raise BAKECAException("Unknown error.")
+			raise BakecaException("Unknown error.")
 		finally:
 			# Close driver
 			if email_driver is not None:
