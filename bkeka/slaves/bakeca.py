@@ -359,16 +359,18 @@ class BakecaSlave(object):
 		logger.info("Parsed context %s." % str(context))
 
 		try:
-			# First go and get mail
-			email_driver = util.get_chrome_driver(BakecaSlave.is_headless, proxy_address)
-			util.go_to_page(driver=email_driver, page_url=util.MOAKT_URL)
-
 			# Get text from file
 			logger.info("Getting title and content...")
 			title, content = util.parse_text_file(BakecaSlave.text_file)
 			logger.info("Got title and content.")
-			# Get email address
-			email = util.moakt_get_email_address(email_driver)
+
+			# First go and get mail
+			email_driver = util.get_chrome_driver(BakecaSlave.is_headless, proxy_address)
+
+			# util.go_to_page(driver=email_driver, page_url=util.MOAKT_URL)
+			# email = util.moakt_get_email_address(email_driver)
+
+			email = util.smail_get_email_address(email_driver)
 			password = util.random_string(10)
 			# Get images
 			logger.info("Got email [%s] and password [%s]" % (email, password))
@@ -393,7 +395,8 @@ class BakecaSlave(object):
 				sleep(5)
 				# Go to mail box
 				logger.info("Verify email...")
-				util.moakt_access_verify_link(email_driver, '/html/body/p[5]/a')
+				# util.moakt_access_verify_link(email_driver, '/html/body/p[5]/a')
+				util.smail_validate_link(email_driver)
 
 				# Click on accept
 				util.scroll_into_view_click(email_driver, '//*[@id="accetto"]')
