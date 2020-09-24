@@ -239,37 +239,6 @@ def temp_mail_go_to_email_content(driver):
     go_to_page(driver=driver, page_url=email_content_link)
 
 
-def smailpro_incontripro_access_verify_link(driver):
-    resp = ""
-    sleep(5)
-    for i in range(1, 30):
-        sleep(2)
-        print("slept ", i * 2)
-        try:
-            # Click on inbox
-            driver.find_element_by_xpath('//*[@id="tab1"]').click()
-            driver.find_element_by_xpath('//*[@id="tab2"]').click()
-
-            # Click on message
-            message_block = driver.find_element_by_xpath(
-                '//*[@id="amp_list_mail"]/div[2]/div/a[1]/div/div[2]/div/span[1]')
-            driver.execute_script("arguments[0].scrollIntoView();", message_block)
-            message_block.click()
-
-            resp = "success"
-        except NoSuchElementException as e:
-            print("didn t receive mail")
-
-    print("RESP: ", resp)
-    if resp != "success":
-        return "error"
-
-    verification_link = driver.find_element_by_xpath('/html/body/div/div[2]/a[2]')
-    verification_link_url = verification_link.get_attribute('href')
-    go_to_page(driver=driver, page_url=verification_link_url)
-    return "success"
-
-
 def moakt_access_verify_link(driver, url_xpath):
     resp = ""
     for i in range(1, 10):
@@ -308,29 +277,60 @@ def moakt_access_verify_link(driver, url_xpath):
 ################################################################################
 ################################################################################
 def smail_get_email_address(driver):
-    go_to_page(driver=driver, page_url=SMAIL_URL)
-    return driver.find_element_by_xpath('/html/body/div/div[4]/form/input').get_attribute('value')
+    driver.get(SMAIL_URL)
+    for i in range(10):
+        # Generate
+        driver.find_element_by_xpath('//*[@id="semail"]/div/div[2]/div[1]/div[2]/div/div[2]/button').click()
+        sleep(1)
+        # Banner (Random address)
+        driver.find_element_by_xpath('//*[@id="settingsEmail"]/div/div/div[3]/button[2]').click()
+        sleep(1)
+        for j in range(5):
+            # Wait for "Click generate..." to change into "username@server.com"
+            address = driver.find_element_by_xpath('//*[@id="semail"]/div/div[2]/div[1]/div[1]/div').text
+            if "@" in address:
+                return address
+            sleep(1)
+    raise Exception("Cannot get the email address from %s!" % SMAIL_URL)
 
 
 def smail_validate_link(driver):
-    """This may raise ELementNotFoundException if the mail was not sent in the right time frame. """
-    email_content_link_xpath = '/html/body/div/div[5]/amp-selector/div[4]/amp-list/div[3]/div/a'
-    verification_link_xpath = '/html/body/a[2]'
-    inbox_tab_xpath = '//*[@id="tab2"]'
-    # Need to wait to receive mail
-    sleep(10)
-    # Go to inbox tab
-    inbox_tab = driver.find_element_by_xpath(inbox_tab_xpath)
-    inbox_tab.click()
-    # Go to email content
-    email_content_link = driver.find_element_by_xpath(email_content_link_xpath).get_attribute('href')
-    go_to_page(driver=driver, page_url=email_content_link)
-    # Get verification link
-    iframe = driver.find_element_by_name("amp_iframe0")
+    resp = ""
+    for i in range(1, 30):
+        sleep(2)
+        print("slept ", i * 2)
+        try:
+            # Click on inbox
+            driver.find_element_by_xpath('//*[@id="binbox"]').click()
+            sleep(1)
+            # Refresh
+            driver.find_element_by_xpath('//*[@id="inbox"]/div[1]/button').click()
+            sleep(1)
+            # Click on message
+            message_block = driver.find_element_by_xpath('//*[@id="inbox"]/div[2]/table/tbody/tr/td/span[1]')
+            message_block.click()
+            sleep(1)
+            resp = "success"
+            break
+        except NoSuchElementException as e:
+            print("didn t receive mail")
+
+    print("RESP: ", resp)
+    if resp != "success":
+        return "error"
+
+    # Switch to iFrame (confirmation email)
+    iframe = driver.find_element_by_xpath('//*[@id="ifrm"]')
     driver.switch_to.frame(iframe)
-    verification_link = driver.find_element_by_xpath(verification_link_xpath)
+    verification_link = driver.find_element_by_xpath('/html/body/p[5]/a')
     verification_link_url = verification_link.get_attribute('href')
-    go_to_page(driver=driver, page_url=verification_link_url)
+    driver.get(verification_link_url)
+    # This is a redirect full of ads; wait for page to load.
+    sleep(3)
+    # Go to real verification link now!
+    driver.find_element_by_xpath('//*[@id="app"]/main/div/div[2]/a').click()
+    sleep(3)
+    return "success"
 
 
 ################################################################################
