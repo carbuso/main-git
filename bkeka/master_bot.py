@@ -293,17 +293,25 @@ def main():
     start_all_slaves(executor)
     logger.info("Done starting first batch of slaves")
 
+    # Slaves loop settings:
+    release_timeout = 360  # 6 minutes
+    debug_timeout = 1800  # 30 minutes
+    vpn_timeout = 300  # 5 minutes
+    critical_timeout = 3600  # 1 hour
+    wait_for_threads = True
+    slave_return_value = SLAVE_SUCCESS
+    vpn_force_switch = False
+    stop_posting = False
     # Now start slaves as slaves finish
     while True:
         try:
             logger.info("Waiting for a slave to finish")
-            release_timeout = 360       # 6 minutes
-            debug_timeout = 1800        # 30 minutes
-            vpn_timeout = 300           # 5 minutes
-            critical_timeout = 3600     # 1 hour
-            slave_return_value = slave_return_queue.get(block=True, timeout=release_timeout)
-            vpn_force_switch = slave_return_value is SLAVE_ERROR
-            stop_posting = util.check_stop_time_interval(STOP_TIME_INTERVAL)
+            # Per default we wait for all threads to finish with a timeout.
+            # If anything needs to be done before this, set wait_for_threads=False
+            if wait_for_threads:
+                slave_return_value = slave_return_queue.get(block=True, timeout=release_timeout)
+                vpn_force_switch = slave_return_value is SLAVE_ERROR
+                stop_posting = util.check_stop_time_interval(STOP_TIME_INTERVAL)
 
             if stop_posting:
                 msg = ("---> Stop posting! Now:%s Interval:%s" % (datetime.now().strftime('%H:%M'), STOP_TIME_INTERVAL))
@@ -329,6 +337,8 @@ def main():
                 logger.info("Switched VPN server.")
                 # Now start all slaves again.
                 start_all_slaves(executor)
+                # Reset the usual flags
+                wait_for_threads = True
                 # Continue the loop
                 continue
 
@@ -343,9 +353,18 @@ def main():
             slave = get_slave(slave_context)
             executor.submit(slave.start, slave_context, slave_return_queue)
             logger.info("Started slave with context %s", str(slave_context))
+
+            # Reset usual flags
+            wait_for_threads = True
+
         except queue.Empty as exc:
             msg = ("Slave timeout exception: %s" % str(exc))
             logger.exception(msg)
+        except CyberghostvpnException as exc:
+            msg = ("Slave timeout exception: %s" % str(exc))
+            logger.exception(msg)
+            wait_for_threads = False
+            vpn_force_switch = True
         except Exception as exc:
             msg = ("Unknown exception: %s" % str(exc))
             logger.exception(msg)
@@ -356,7 +375,6 @@ def main():
                 logger.info(msg)
                 print(msg)
                 break
-
 
     if USE_VPN:
         openvpn_close_connection()

@@ -1,4 +1,4 @@
-from subprocess import Popen, PIPE, check_output, TimeoutExpired
+from subprocess import Popen, PIPE, STDOUT, check_output, TimeoutExpired
 from time import sleep
 from os import read
 import re
@@ -104,8 +104,16 @@ class Cyberghostvpn(object):
         cmd = ("sudo cyberghostvpn --traffic --country-code %s --connection TCP --city '%s' --server '%s' --connect" %
                (country, city, server))
         print(cmd)
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
-        out, err = proc.communicate()
+        # proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+        # out, err = proc.communicate()
+        timeout_sec = 120
+        try:
+            out = check_output(cmd, stderr=STDOUT, shell=True, timeout=timeout_sec)
+            err = b''
+        except Exception as e:
+            out = b''
+            err = str(e)
+            pass
         if out == b'':
             msg = ('Error on command: %s' % cmd)
             self.logger.info(msg)
