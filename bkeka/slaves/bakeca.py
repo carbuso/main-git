@@ -376,8 +376,23 @@ class BakecaSlave(object):
 
         try:
             # Get text from file
-            logger.info("Getting title and content...")
-            title, content = util.parse_text_file(BakecaSlave.text_file)
+            # Use up to 20 additional text_files with the same bot.
+            # BOT_TEXT_IMAGES/BAKECA/BAKECA_TEXT_FILE.txt
+            # BOT_TEXT_IMAGES/BAKECA/BAKECA_TEXT_FILE1.txt ... _FILE20.txt
+            text_file_list = [BakecaSlave.text_file]
+            for i in range(1, 21):
+                (basename, ext) = os.path.splitext(BakecaSlave.text_file)
+                i_text_file = basename + str(i) + ext
+                if os.path.exists(i_text_file):
+                    text_file_list.append(i_text_file)
+
+            text_file_id = self.city_index % len(text_file_list)
+            text_file_x = text_file_list[text_file_id]
+
+            logger.info("Getting title and content from: %s" % text_file_x)
+
+            # title, content = util.parse_text_file(BakecaSlave.text_file)
+            title, content = util.parse_text_file(text_file_x)
             logger.info("Got title and content.")
 
             # First go and get mail
