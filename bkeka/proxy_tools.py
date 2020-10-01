@@ -1,7 +1,7 @@
 import re
 import os.path
 
-# TODO: this class does NOT work with private proxies from Luminati
+# Initially written to test https://www.proxydocker.com/en/
 class Proxy(object):
     def __init__(self, file_in, file_out_ok, file_out_nok):
         self.__file_in = file_in
