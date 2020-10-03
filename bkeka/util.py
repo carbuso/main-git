@@ -178,7 +178,8 @@ def solve_captcha_iframe(driver, iframe_xpath):
     response = json.loads(r.text)
 
     if (response['status'] != 1):
-        return
+        return "error"
+
     # Remember request ID
     captcha_req_id = response['request']
 
@@ -194,11 +195,11 @@ def solve_captcha_iframe(driver, iframe_xpath):
         r = requests.get(GET_CAPTCHA_URL, params=PARAMS_GET)
         response = json.loads(r.text)
         print("Get response : " + r.text)
-        if (response['status'] == 1):
+        if response['status'] == 1:
             break
 
     captcha_solution = response['request']
-    if (captcha_solution == 'CAPCHA_NOT_READY'):
+    if captcha_solution == 'CAPCHA_NOT_READY':
         print("Failed to resolve captcha!")
         return "error"
 
@@ -277,8 +278,9 @@ def moakt_access_verify_link(driver, url_xpath):
 ################################################################################
 ################################################################################
 def smail_get_email_address(driver):
+    """Get a temp email address from SMailPro web page as unregistered user."""
     driver.get(SMAIL_URL)
-    for i in range(10):
+    for i in range(3):
         # Generate
         driver.find_element_by_xpath('//*[@id="semail"]/div/div[2]/div[1]/div[2]/div/div[2]/button').click()
         sleep(1)
@@ -288,13 +290,14 @@ def smail_get_email_address(driver):
         for j in range(5):
             # Wait for "Click generate..." to change into "username@server.com"
             address = driver.find_element_by_xpath('//*[@id="semail"]/div/div[2]/div[1]/div[1]/div').text
-            if "@" in address:
+            if "gmail.com" in address or "googlemail.com" in address:
                 return address
             sleep(1)
     raise Exception("Cannot get the email address from %s!" % SMAIL_URL)
 
 
 def smail_validate_link(driver):
+    """Use SMailPro web page as unregistered user to validate the link."""
     resp = ""
     for i in range(1, 30):
         sleep(2)
@@ -330,6 +333,15 @@ def smail_validate_link(driver):
     # Go to real verification link now!
     driver.find_element_by_xpath('//*[@id="app"]/main/div/div[2]/a').click()
     sleep(3)
+    return "success"
+
+
+def smailpro_validate_link(driver):
+    """Use SMailPro API-KEY to fetch the email in a temp file and validate the link."""
+    verification_link = driver.find_element_by_xpath('/html/body/p[5]/a')
+    verification_link_url = verification_link.get_attribute('href')
+    driver.get(verification_link_url)
+    sleep(2)
     return "success"
 
 
