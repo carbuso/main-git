@@ -144,12 +144,12 @@ class SMailProManager(object):
     def get_message_as_text(self):
         # check inbox for the message
         got_email = False
-        for i in range(20):
+        for i in range(10):  # 5x10=50sec
             got_email = self.smailpro.check_inbox() == 0
             if got_email:
                 break
-            print("SMailPro waits 2s for the message")
-            time.sleep(2)
+            print("SMailPro waits 5s for the message to arrive")
+            time.sleep(5)
         # did any message arrive?
         if not got_email:
             msg = "SMailPro did not get any message!"
