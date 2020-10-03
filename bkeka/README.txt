@@ -29,5 +29,8 @@
    Change openvpn.ovpn, add full path for ca,cert,key and after line 'proto tcp' add auth-user-pass 'path to pass.txt'.
 
 5. Check util.py:29  CAPTCH_API_KEY=""
-6. Check default.cfg
+
+6. Check default.cfg:27 smailpro_api_key=""
+
+7. Check default.cfg
 
