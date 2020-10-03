@@ -12,6 +12,7 @@ import queue
 import os
 import datetime
 from proxy_tools import Proxy
+from smailpro import SMailProManager, SMailProException
 
 # CONSTANTS
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__name__))
@@ -70,13 +71,17 @@ class BakecaSlave(object):
     lpm_address = ""
     fail_queue = queue.Queue()
 
-    def __init__(self, is_headless, use_proxy, use_lpm, lpm_address, disable_logging):
+    def __init__(self, is_headless, smailpro_api_key, smailpro_id_range, use_proxy, use_lpm, lpm_address, disable_logging):
         with BakecaSlave.bakeca_lock:
             self.slave_id = util.random_string(8) + "-" + str(BakecaSlave.slave_index)
             BakecaSlave.slave_index = BakecaSlave.slave_index + 1
             if use_proxy:
                 BakecaSlave.proxy = Proxy(PROXY_INPUT_PATH, PROXY_OUTPUT_OK_PATH, PROXY_OUTPUT_NOK_PATH)
                 BakecaSlave.proxy.__enter__()
+            # SMailPro GMail service
+            self.smailpro_api_key = smailpro_api_key
+            self.smailpro_id_range = smailpro_id_range
+            self.smailpro_man = SMailProManager(self.smailpro_api_key, self.smailpro_id_range)
 
         self.logger = bot_logger.get_logger(
             name=__name__ + '-' + self.slave_id,
@@ -240,7 +245,8 @@ class BakecaSlave(object):
         try:
             util.scroll_into_view_click(driver, '//*[@id="accept-gdpr"]')
         except NoSuchElementException as e:
-            print("---> No cookies button!")
+            # print("---> No cookies button!")
+            pass
 
         # Click on accept terms
         util.scroll_into_view_click(driver, '//*[@id="submit-ins"]')
@@ -250,7 +256,8 @@ class BakecaSlave(object):
             sleep(2)
             util.scroll_into_view_click(driver, '//*[@id="content-black-week-promo"]/div[2]/div[2]/div[6]/button')
         except NoSuchElementException as e:
-            print("---> No promotion banner!")
+            # print("---> No promotion banner!")
+            pass
 
         # Sleep for loading
         sleep(5)
@@ -265,7 +272,7 @@ class BakecaSlave(object):
                 # The banner will not allow pub-gratis. Return here for now.
                 return is_telegram_auth, is_chiudi, loaded_images
             else:
-                print('----> NO telegram AUTH')
+                # print('----> NO telegram AUTH')
                 self.logger.info("----> NO telegram AUTH")
 
         # Click on publish for free
@@ -400,8 +407,8 @@ class BakecaSlave(object):
 
             # util.go_to_page(driver=email_driver, page_url=util.MOAKT_URL)
             # email = util.moakt_get_email_address(email_driver)
-
-            email = util.smail_get_email_address(email_driver)
+            # email = util.smail_get_email_address(email_driver)
+            email = self.smailpro_man.get_email_address(self.slave_index)
             password = util.random_string(10)
             # Get images
             logger.info("Got email [%s] and password [%s]" % (email, password))
@@ -428,7 +435,12 @@ class BakecaSlave(object):
                 # Go to mail box
                 logger.info("Verify email...")
                 # util.moakt_access_verify_link(email_driver, '/html/body/p[5]/a')
-                util.smail_validate_link(email_driver)
+                # util.smail_validate_link(email_driver)
+                html_file = self.smailpro_man.get_message_as_temp_file()
+                email_driver.get("file://" + html_file)
+                sleep(2)
+                util.smailpro_validate_link(email_driver)
+                os.unlink(html_file)
 
                 # Click on accept
                 util.scroll_into_view_click(email_driver, '//*[@id="accetto"]')
@@ -469,6 +481,10 @@ class BakecaSlave(object):
             exception_type = "TelegramAuth was required."
             logger.exception("TelegramAuth was required.")
             raise BakecaException("TelegramAuth was required.")
+        except SMailProException as e:
+            exception_type = "SMailPro exception occurred."
+            logger.exception("SMailPro exception occurred.")
+            raise BakecaException("SMailPro exception occurred.")
         except BakecaException as e:
             exception_type = "Bakeca exception occurred"
             logger.exception("Bakeca exception occurred")
