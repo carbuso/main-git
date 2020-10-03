@@ -53,6 +53,9 @@ LPM_ADDRESS = ""
 DISABLE_LOGGING = False
 # Whether to stop posting in these time intervals.
 STOP_TIME_INTERVAL = ""
+# SMailPro API KEY
+SMAILPRO_API_KEY= ""
+SMAILPRO_ID_RANGE=""
 
 # Slave queues
 slave_queue = queue.Queue()
@@ -93,6 +96,7 @@ def parse_config():
     global USE_CYBERGHOSTVPN, CYBERGHOSTVPN_COUNTRY, CYBERGHOSTVPN_START_IP
     global USE_PROXY, PROXY_LIST_FILE, USE_LPM, LPM_ADDRESS
     global DISABLE_LOGGING, STOP_TIME_INTERVAL
+    global SMAILPRO_API_KEY, SMAILPRO_ID_RANGE
     config = configparser.ConfigParser()
     config.read(CONFIG_PATH)
     temp_use_vpn = ""
@@ -132,6 +136,10 @@ def parse_config():
             temp_disable_logging = config['master']['disable_logging']
         if config.has_option('master', 'stop_time_interval'):
             STOP_TIME_INTERVAL = config['master']['stop_time_interval']
+        if config.has_option('master', 'smailpro_api_key'):
+            SMAILPRO_API_KEY = config['master']['smailpro_api_key']
+        if config.has_option('master', 'smailpro_id_range'):
+            SMAILPRO_ID_RANGE = config['master']['smailpro_id_range']
     config.remove_section('master')
 
     # All must be False by default!
@@ -171,7 +179,7 @@ def get_slave(context):
 
     # NOTE: If you add new script you must also add it here.
     if target_website == 'bakecaincontrii.com':
-        return BakecaSlave(IS_HEADLESS, USE_PROXY, USE_LPM, LPM_ADDRESS, DISABLE_LOGGING)
+        return BakecaSlave(IS_HEADLESS, SMAILPRO_API_KEY, SMAILPRO_ID_RANGE, USE_PROXY, USE_LPM, LPM_ADDRESS, DISABLE_LOGGING)
     else:
         raise MasterBotInternalException(
             "No script for : " + target_website
