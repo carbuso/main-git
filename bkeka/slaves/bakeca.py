@@ -198,17 +198,10 @@ class BakecaSlave(object):
             images[0] + " \n " + images[1] + " \n " + images[2] + " \n " + images[3] + " \n " + images[4])
         sleep(15)
 
-        # # Add two more image fieds
-        # # NOTE: If we change the number of images we should also change this
-        # sleep(3)
-        # driver.find_element_by_id('nuovaImagine').click()
-        # driver.find_element_by_id('nuovaImagine').click()
-
-        # # # Add images
-        # driver.find_element_by_id('Gallery0Image').send_keys(images[0])
-        # driver.find_element_by_id('Gallery1Image').send_keys(images[1])
-        # driver.find_element_by_id('Gallery2Image').send_keys(images[2])
-        # Wait for images
+        # Consent to use the photos - simple click() => ElementNotInteractableException
+        # https://stackoverflow.com/a/58686887/115149
+        consent_photos = driver.find_element_by_xpath('//*[@id="auth_photo"]')
+        driver.execute_script("arguments[0].click();", consent_photos)
 
         # CHIUDI refers to 'something went wrong with the images'
         is_chiudi = False
