@@ -241,6 +241,12 @@ class BakecaSlave(object):
         # Click on accept terms
         util.scroll_into_view_click(driver, '//*[@id="privacy-ins"]')
 
+        # Click on "Particolari categorie di dati"
+        util.scroll_into_view_click(driver, '//*[@id="auth_special_cat"]')
+
+        # Click on "Comunicazioni Marketing"
+        util.scroll_into_view_click(driver, '//*[@id="accept_adv"]')
+
         # Accept cookies before submitting
         try:
             util.scroll_into_view_click(driver, '//*[@id="accept-gdpr"]')
