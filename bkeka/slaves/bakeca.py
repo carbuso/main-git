@@ -232,13 +232,13 @@ class BakecaSlave(object):
         driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
 
         # Click on accept terms
-        util.scroll_into_view_click(driver, '//*[@id="privacy-ins"]')
+        driver.find_element_by_xpath('//*[@id="privacy-ins"]').click()
 
         # Click on "Particolari categorie di dati"
-        util.scroll_into_view_click(driver, '//*[@id="auth_special_cat"]')
+        driver.find_element_by_xpath('//*[@id="auth_special_cat"]').click()
 
         # Click on "Comunicazioni Marketing"
-        util.scroll_into_view_click(driver, '//*[@id="accept_adv"]')
+        driver.find_element_by_xpath('//*[@id="accept_adv"]').click()
 
         # Accept cookies before submitting
         try:
@@ -250,12 +250,12 @@ class BakecaSlave(object):
         # Click on accept terms
         util.scroll_into_view_click(driver, '//*[@id="submit-ins"]')
 
-        # Click on promotion banner
+        # Climb The Top VideoChiama: Chiudi
         try:
-            sleep(2)
-            util.scroll_into_view_click(driver, '//*[@id="content-black-week-promo"]/div[2]/div[2]/div[6]/button')
+            sleep(1)
+            util.scroll_into_view_click(driver, '//*[@id="content-black-week-promo"]/div[2]/div[2]/div[7]/button')
         except NoSuchElementException as e:
-            # print("---> No promotion banner!")
+            # print("---> No VideoChiama banner!")
             pass
 
         # Sleep for loading
