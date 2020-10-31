@@ -210,13 +210,13 @@ class CyberghostvpnManager(object):
             _servers = self.cyberghost.get_servers(self.country, city)
             for server in _servers:
                 _addresses.append((self.country, city, server))
-        # Keep current list of servers in case cyberghost returned an empty IP list.
+        # safety check : keep the current IP list if the new one is empty.
         if len(_addresses) == 0:
             msg = "CyberGhost returned empty address list!"
             self.logger.info(msg)
             print(msg)
             return 1
-        # Otherwise, reinitialize
+        # reinitialize
         self.addresses = _addresses
         self.repeated = False
         self.current_server = self.start_ip
