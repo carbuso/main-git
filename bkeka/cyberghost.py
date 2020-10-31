@@ -203,16 +203,23 @@ class CyberghostvpnManager(object):
     def refresh(self):
         """Refresh server list"""
         self.disconnect()
-        # reinitialize
-        self.addresses = []
+        # get the servers in tmp variables
+        _addresses = []
+        _cities = self.cyberghost.get_cities(self.country)
+        for city in _cities:
+            _servers = self.cyberghost.get_servers(self.country, city)
+            for server in _servers:
+                _addresses.append((self.country, city, server))
+        # Keep current list of servers in case cyberghost returned an empty IP list.
+        if len(_addresses) == 0:
+            msg = "CyberGhost returned empty address list!"
+            self.logger.info(msg)
+            print(msg)
+            return 1
+        # Otherwise, reinitialize
+        self.addresses = _addresses
         self.repeated = False
         self.current_server = self.start_ip
-        # get the servers
-        cities = self.cyberghost.get_cities(self.country)
-        for city in cities:
-            servers = self.cyberghost.get_servers(self.country, city)
-            for server in servers:
-                self.addresses.append((self.country, city, server))
         return 0
 
     def disconnect(self):
