@@ -368,14 +368,17 @@ def main():
         except queue.Empty as exc:
             msg = ("Slave timeout exception: %s" % str(exc))
             logger.exception(msg)
+            print(msg)
         except CyberghostvpnException as exc:
             msg = ("Slave timeout exception: %s" % str(exc))
             logger.exception(msg)
+            print(msg)
             wait_for_threads = False
             vpn_force_switch = True
         except Exception as exc:
             msg = ("Unknown exception: %s" % str(exc))
             logger.exception(msg)
+            print(msg)
         finally:
             time_diff = time() - vpn_start_time
             if time_diff > critical_timeout:
