@@ -305,7 +305,7 @@ def main():
     release_timeout = 360  # 6 minutes
     debug_timeout = 1800  # 30 minutes
     vpn_timeout = 300  # 5 minutes
-    critical_timeout = 3600  # 1 hour
+    critical_timeout = 86400  # 24 hours
     wait_for_threads = True
     slave_return_value = SLAVE_SUCCESS
     vpn_force_switch = False
@@ -385,7 +385,8 @@ def main():
                 msg = ("Slave timeout %d sec reached critical timeout %d sec" % (time_diff, critical_timeout))
                 logger.info(msg)
                 print(msg)
-                break
+                # If you want to close the program then break out here.
+                # break
 
     if USE_VPN:
         openvpn_close_connection()
