@@ -25,10 +25,16 @@ SMAIL_URL = "https://smailpro.com/"
 MOAKT_URL = "https://www.moakt.com"
 
 # Captcha API Constants
-CAPTCH_API_KEY = ""
-DEFAULT_CAPTCH_API_METHOD = "userrecaptcha"
+CAPTCHA_API_KEY = ""
+DEFAULT_CAPTCHA_API_METHOD = "userrecaptcha"
+DEFAULT_HCAPTCHA_API_METHOD = "hcaptcha"
 POST_CAPTCHA_URL = "https://2captcha.com/in.php"
 GET_CAPTCHA_URL = "https://2captcha.com/res.php"
+
+# Anti-Captcha Constants
+ANTI_CAPTCHA_API_KEY = ""
+POST_ANTI_CAPTCHA_URL = "https://api.anti-captcha.com/createTask"
+GET_ANTI_CAPTCHA_URL = "https://api.anti-captcha.com/getTaskResult"
 
 
 class UtilParseError(Exception):
@@ -106,8 +112,8 @@ def solve_captcha(driver):
 
     # Make 2Captcha POST
     PARAMS_POST = {
-        'key': CAPTCH_API_KEY,
-        'method': DEFAULT_CAPTCH_API_METHOD,
+        'key': CAPTCHA_API_KEY,
+        'method': DEFAULT_CAPTCHA_API_METHOD,
         'googlekey': captcha_id_text,
         'pageurl': currentURL,
         'json': 1
@@ -125,7 +131,7 @@ def solve_captcha(driver):
     for i in range(1, 30):
         sleep(4)
         PARAMS_GET = {
-            'key': CAPTCH_API_KEY,
+            'key': CAPTCHA_API_KEY,
             'action': 'get',
             'id': captcha_req_id,
             'json': 1
@@ -166,8 +172,8 @@ def solve_captcha_iframe(driver, iframe_xpath):
 
     # Make 2Captcha POST
     PARAMS_POST = {
-        'key': CAPTCH_API_KEY,
-        'method': DEFAULT_CAPTCH_API_METHOD,
+        'key': CAPTCHA_API_KEY,
+        'method': DEFAULT_CAPTCHA_API_METHOD,
         'googlekey': captcha_id_text,
         'pageurl': currentURL,
         'json': 1
@@ -187,7 +193,7 @@ def solve_captcha_iframe(driver, iframe_xpath):
     for i in range(1, 30):
         sleep(4)
         PARAMS_GET = {
-            'key': CAPTCH_API_KEY,
+            'key': CAPTCHA_API_KEY,
             'action': 'get',
             'id': captcha_req_id,
             'json': 1
@@ -210,6 +216,135 @@ def solve_captcha_iframe(driver, iframe_xpath):
     # if y_elem % 2 == 0 or cd_elem > 26:
     #	raise NoSuchElementException("Could not find element!")
 
+    driver.execute_script("arguments[0].style.display = 'block';", recaptcha_response)
+    recaptcha_response.clear()
+    recaptcha_response.send_keys(captcha_solution)
+    driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
+
+    return "success"
+
+
+def solve_hcaptcha_iframe(driver, iframe_xpath):
+    # Get website URL for captcha request
+    currentURL = driver.current_url
+    iframe = driver.find_element_by_xpath(iframe_xpath)
+    captcha_full_string = iframe.get_attribute("src")
+    beg_ = captcha_full_string.find("&sitekey=") + 9
+    end_ = captcha_full_string.find("&", beg_ + 1)
+    sitekey = captcha_full_string[beg_ : end_]
+
+    # Make 2Captcha POST
+    PARAMS_POST = {
+        'key': CAPTCHA_API_KEY,
+        'method': DEFAULT_HCAPTCHA_API_METHOD,
+        'sitekey' : sitekey,
+        'pageurl': currentURL,
+        'json': 1
+    }
+
+    # # sending get request and saving the response as response object
+    r = requests.post(url=POST_CAPTCHA_URL, data=PARAMS_POST)
+    response = json.loads(r.text)
+
+    if (response['status'] != 1):
+        return "error"
+
+    # Remember request ID
+    captcha_req_id = response['request']
+
+    # Sleep for 15 - 20 seconds and do GET
+    for i in range(1, 30):
+        sec_ = 5
+        sleep(sec_)
+        PARAMS_GET = {
+            'key': CAPTCHA_API_KEY,
+            'action': 'get',
+            'id': captcha_req_id,
+            'json': 1
+        }
+        r = requests.get(GET_CAPTCHA_URL, params=PARAMS_GET)
+        response = json.loads(r.text)
+        print("Get response: " + r.text + " " + str(i * sec_) + "s")
+        if response['status'] == 1:
+            break
+        if response['request'] != 'CAPCHA_NOT_READY':
+            break
+
+    captcha_status = response['status']
+    captcha_solution = response['request']
+
+    if captcha_status == 0:
+        print("Captcha failed: " + captcha_solution)
+        return "error"
+
+    # Set captcha solution in captcha resolver element
+    recaptcha_response = driver.find_element_by_id("h-captcha-response")
+    driver.execute_script("arguments[0].style.display = 'block';", recaptcha_response)
+    recaptcha_response.clear()
+    recaptcha_response.send_keys(captcha_solution)
+    driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
+
+    return "success"
+
+
+def solve_anti_hcaptcha_iframe(driver, iframe_xpath):
+    # Resolve hcaptcha using http://anti-captcha.com service
+    currentURL = driver.current_url
+    iframe = driver.find_element_by_xpath(iframe_xpath)
+    captcha_full_string = iframe.get_attribute("src")
+    beg_ = captcha_full_string.find("&sitekey=") + 9
+    end_ = captcha_full_string.find("&", beg_ + 1)
+    sitekey = captcha_full_string[beg_ : end_]
+
+    # Make anti-captcha POST
+    PARAMS_POST = {
+        'clientKey': ANTI_CAPTCHA_API_KEY,
+        'task':
+            {
+                'type': "HCaptchaTaskProxyless",
+                'websiteURL': currentURL,
+                'websiteKey': sitekey
+            }
+    }
+
+    default_headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+    session = requests.Session()
+    session.headers.update(default_headers)
+
+    r = session.post(url=POST_ANTI_CAPTCHA_URL, data=json.dumps(PARAMS_POST))
+    response = json.loads(r.text)
+
+    if response['errorId'] != 0:
+        print("Anti-Captcha failed: " + response['errorDescription'])
+        return "error"
+
+    # Remember taskId ID
+    captcha_req_id = response['taskId']
+
+    # Sleep for 15 - 20 seconds and do GET
+    for i in range(1, 30):
+        sec_ = 5
+        sleep(sec_)
+        PARAMS_POST_2 = {
+            "clientKey": ANTI_CAPTCHA_API_KEY,
+            "taskId": captcha_req_id
+        }
+        r = session.post(GET_ANTI_CAPTCHA_URL, data=json.dumps(PARAMS_POST_2))
+        response = json.loads(r.text)
+
+        print("Get response: " + r.text + " " + str(i * sec_) + "s")
+
+        if response['errorId'] == 0 and response['status'] == "ready":
+            break;
+
+    if response['errorId'] != 0 or response['status'] != "ready":
+        print("Anti-captcha failed")
+        return "error"
+
+    captcha_solution = response['solution']['gRecaptchaResponse']
+
+    # Set captcha solution in captcha resolver element
+    recaptcha_response = driver.find_element_by_id("h-captcha-response")
     driver.execute_script("arguments[0].style.display = 'block';", recaptcha_response)
     recaptcha_response.clear()
     recaptcha_response.send_keys(captcha_solution)
@@ -413,17 +548,26 @@ def scroll_into_view_click_id(driver, id):
     button.click()
 
 
-def scroll_into_view_click(driver, xpath):
+def scroll_into_view_click_xpath(driver, xpath):
     button = driver.find_element_by_xpath(xpath);
     driver.execute_script("arguments[0].scrollIntoView();", button)
     button.click()
 
 
 def parse_text_file(text_file_path):
+    age = None
     title = None
     content = None
     with open(text_file_path, "r") as f:
-        title = f.readline()
+        # age [optional] & title
+        _age = f.readline()
+        try:
+            age = int(_age, base=10)
+            title = f.readline()
+        except Exception as e:
+            age = 18
+            title = _age
+        # text
         content = f.read()
 
     temp_content = content
@@ -468,7 +612,7 @@ def parse_text_file(text_file_path):
             # print("exc")
             do_continue = False
 
-    return title, content
+    return age, title, content
 
 
 def random_string_random_length():
