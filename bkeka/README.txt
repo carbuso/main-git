@@ -8,7 +8,7 @@
 
 2. pip3 install selenium
    pip3 install requests
-   yum install python3-pillow
+   dnf install python3-pillow
 
 3. sudo in Pycharm debugger does not work.
    If you use the VPN connection then disable the password temporarily.
@@ -28,7 +28,8 @@
    Copy user, pass and save them in pass.txt
    Change openvpn.ovpn, add full path for ca,cert,key and after line 'proto tcp' add auth-user-pass 'path to pass.txt'.
 
-5. Check util.py:29  CAPTCH_API_KEY=""
+5. Check util.py:28  CAPTCH_API_KEY=""
+   Check util.py:35  ANTI_CAPTCHA_API_KEY=""
 
 6. Check default.cfg:27 smailpro_api_key=""
 
