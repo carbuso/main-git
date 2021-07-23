@@ -111,7 +111,7 @@ CITIES=[
 
 
 CATEGORIES=[
-"Donna cerca uomo"
+"Donna Cerca Uomo"
 ]
 
 # Links
