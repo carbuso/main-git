@@ -125,7 +125,7 @@ class BakecaSlave(object):
         driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
 
         # Click on register
-        util.scroll_into_view_click(driver, '/html/body/div[1]/div[2]/div[2]/div[2]/form/div[3]/input')
+        util.scroll_into_view_click_xpath(driver, '/html/body/div[1]/div[2]/div[2]/div[2]/form/div[3]/input')
         return 0
 
     def login_to_website(self, driver, email, password):
@@ -149,38 +149,90 @@ class BakecaSlave(object):
         driver.execute_script(js_add_text_to_input, element, text)
         return 0
 
-    def make_website_post(self, driver, city_id, category_id, title, content, images, email):
+    def make_website_post(self, driver, city_id, category_id, age, title, content, images, email):
         # Get category and city
         city_name = CONSTANTS.CITIES[city_id]
         category_name = CONSTANTS.CATEGORIES[category_id]
         self.logger.info("Making website post for city [%s] and category [%s]..." % (city_name, category_name))
         # Click on create announcement
-        # driver.find_element_by_xpath('//*[@id="button-base"]/a').click()
         driver.find_element_by_xpath('//*[ @ id = "navbarSupportedContent20"] / ul / li[3]').click()
 
         # Read the terms and conditions
         sleep(2)
 
         # Click on accept
-        util.scroll_into_view_click(driver, '//*[@id="accetto"]')
+        util.scroll_into_view_click_xpath(driver, '//*[@id="lightbox-vm18"]/div/div/div[3]/button')
+
+        # Select category
+        select = Select(driver.find_element_by_xpath('//*[@id="app"]/main/div[2]/form/div/div[2]/div/div[1]/select'))
+        select.select_by_visible_text(category_name)
 
         # Select city
-        select = Select(driver.find_element_by_id('citta-ins'))
+        select = Select(driver.find_element_by_xpath('//*[@id="app"]/main/div[2]/form/div/div[2]/div/div[2]/select'))
         select.select_by_visible_text(city_name)
-        # Select category
-        select = Select(driver.find_element_by_id('categoria-ins'))
-        select.select_by_visible_text(category_name)
+
+        # Set age (text)
+        age_tag = driver.find_element_by_xpath('/html/body/div[1]/main/div[2]/form/div/div[3]/div/div[1]/input')
+        driver.execute_script("arguments[0].scrollIntoView();", age_tag)
+        self.send_text_to_input(driver, age_tag, age)
+
         # Set title
-        title_tag = driver.find_element_by_id('titolo-ins')
+        title_tag = driver.find_element_by_xpath('//*[@id="app"]/main/div[2]/form/div/div[3]/div/div[2]/textarea')
         driver.execute_script("arguments[0].scrollIntoView();", title_tag)
-        # title_tag.send_keys(title)
         self.send_text_to_input(driver, title_tag, title)
 
         # Set content
-        content_tag = driver.find_element_by_id('testo-ins')
+        content_tag = driver.find_element_by_xpath('//*[@id="app"]/main/div[2]/form/div/div[3]/div/div[3]/textarea')
         driver.execute_script("arguments[0].scrollIntoView();", content_tag)
-        # content_tag.send_keys(content)
         self.send_text_to_input(driver, content_tag, content)
+
+        # Set contact per email (radio bn)
+        util.scroll_into_view_click_xpath(driver, '//*[@id="app"]/main/div[2]/form/div/div[4]/div[1]/div[3]/div')
+
+        # Set E-Mail address
+        email_tag = driver.find_element_by_xpath('/html/body/div[1]/main/div[2]/form/div/div[4]/div[2]/div[1]/input')
+        driver.execute_script("arguments[0].scrollIntoView();", email_tag)
+        self.send_text_to_input(driver, email_tag, email)
+
+        # Solve captcha
+        resp = util.solve_hcaptcha_iframe(driver, '//*[@id="hcap-script"]/iframe')
+        if resp == "error":
+            raise util.CaptchaSolverException("Failed to resolve captcha")
+        # Close captcha response
+        # recaptcha_response = driver.find_element_by_id("g-recaptcha-response")
+        # driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
+
+        # Click on accept terms
+        driver.find_element_by_xpath('//*[@id="app"]/main/div[2]/form/div/div[6]/div[1]').click()
+
+        # Click on "Categorie speciali di dati personali"
+        driver.find_element_by_xpath('//*[@id="app"]/main/div[2]/form/div/div[7]/div[1]').click()
+
+        # Click on "Comunicazioni Marketing"
+        driver.find_element_by_xpath('//*[@id="app"]/main/div[2]/form/div/div[8]/div[1]').click()
+
+        # Accept cookies before submitting
+        try:
+            util.scroll_into_view_click_xpath(driver, '//*[@id="app"]/div[3]/button[2]')
+        except NoSuchElementException as e:
+            # print("---> No cookies button!")
+            pass
+
+        # Go to page 2 "Foto"
+        util.scroll_into_view_click_xpath(driver, '//*[@id="app"]/main/div[2]/form/div/div[9]/div/button')
+
+
+
+        # Click on accept terms
+        util.scroll_into_view_click_xpath(driver, '//*[@id="submit-ins"]')
+
+        # Climb The Top VideoChiama: Chiudi
+        try:
+            sleep(1)
+            util.scroll_into_view_click_xpath(driver, '//*[@id="content-black-week-promo"]/div[2]/div[2]/div[7]/button')
+        except NoSuchElementException as e:
+            # print("---> No VideoChiama banner!")
+            pass
 
         # Photos
         # This tag is hidden
@@ -219,44 +271,9 @@ class BakecaSlave(object):
         self.logger.info("---> Images loaded: " + str(loaded_images))
 
         # Email
-        email_tag = driver.find_element_by_id('email-ins')
-        driver.execute_script("arguments[0].scrollIntoView();", email_tag)
-        email_tag.send_keys(email)
-
-        # Solve captcha
-        resp = util.solve_captcha_iframe(driver, '//*[@id="captcha_post_insert"]/div/div/iframe')
-        if resp == "error":
-            raise util.CaptchaSolverException("Failed to resolve captcha")
-        # Close captcha response
-        recaptcha_response = driver.find_element_by_id("g-recaptcha-response")
-        driver.execute_script("arguments[0].style.display = 'none';", recaptcha_response)
-
-        # Click on accept terms
-        driver.find_element_by_xpath('//*[@id="privacy-ins"]').click()
-
-        # Click on "Particolari categorie di dati"
-        driver.find_element_by_xpath('//*[@id="auth_special_cat"]').click()
-
-        # Click on "Comunicazioni Marketing"
-        driver.find_element_by_xpath('//*[@id="accept_adv"]').click()
-
-        # Accept cookies before submitting
-        try:
-            util.scroll_into_view_click(driver, '//*[@id="accept-gdpr"]')
-        except NoSuchElementException as e:
-            # print("---> No cookies button!")
-            pass
-
-        # Click on accept terms
-        util.scroll_into_view_click(driver, '//*[@id="submit-ins"]')
-
-        # Climb The Top VideoChiama: Chiudi
-        try:
-            sleep(1)
-            util.scroll_into_view_click(driver, '//*[@id="content-black-week-promo"]/div[2]/div[2]/div[7]/button')
-        except NoSuchElementException as e:
-            # print("---> No VideoChiama banner!")
-            pass
+        # email_tag = driver.find_element_by_id('email-ins')
+        # driver.execute_script("arguments[0].scrollIntoView();", email_tag)
+        # email_tag.send_keys(email)
 
         # Sleep for loading
         sleep(5)
@@ -275,7 +292,7 @@ class BakecaSlave(object):
                 self.logger.info("----> NO telegram AUTH")
 
         # Click on publish for free
-        util.scroll_into_view_click(driver, '//*[@id="pub-gratis"]')
+        util.scroll_into_view_click_xpath(driver, '//*[@id="pub-gratis"]')
 
         return is_telegram_auth, is_chiudi, loaded_images
 
@@ -397,8 +414,7 @@ class BakecaSlave(object):
 
             logger.info("Getting title and content from: %s" % text_file_x)
 
-            # title, content = util.parse_text_file(BakecaSlave.text_file)
-            title, content = util.parse_text_file(text_file_x)
+            age, title, content = util.parse_text_file(text_file_x)
             logger.info("Got title and content.")
 
             # First go and get mail
@@ -421,8 +437,8 @@ class BakecaSlave(object):
 
             # Post without register
             logger.info("Make website post...")
-            is_telg_auth, is_chiudi, loaded_images = self.make_website_post(website_driver, city_id, category_id, title,
-                                                                            content, images, email)
+            is_telg_auth, is_chiudi, loaded_images = self.make_website_post(website_driver, city_id, category_id,
+                                                                            age, title, content, images, email)
 
             # Close website driver
             website_driver.quit()
@@ -442,7 +458,7 @@ class BakecaSlave(object):
                 os.unlink(html_file)
 
                 # Click on accept
-                util.scroll_into_view_click(email_driver, '//*[@id="accetto"]')
+                util.scroll_into_view_click_xpath(email_driver, '//*[@id="accetto"]')
 
                 # Get post link
                 logger.info("Getting post url...")
